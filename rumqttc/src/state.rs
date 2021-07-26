@@ -3,7 +3,7 @@ use crate::{Event, Incoming, Outgoing, Request};
 use bytes::BytesMut;
 use mqttbytes::v4::*;
 use mqttbytes::*;
-use std::collections::VecDeque;
+use std::collections::{VecDeque, HashSet};
 use std::{io, mem, time::Instant};
 
 /// Errors during state handling
@@ -68,7 +68,7 @@ pub struct MqttState {
     /// Packet ids of released QoS 2 publishes
     pub(crate) outgoing_rel: Vec<Option<u16>>,
     /// Packet ids on incoming QoS 2 publishes
-    pub(crate) incoming_pub: Vec<Option<u16>>,
+    pub(crate) incoming_pub: HashSet<u16>,
     /// Last collision due to broker not acking in order
     pub collision: Option<Publish>,
     /// Buffered incoming packets
@@ -93,7 +93,7 @@ impl MqttState {
             // index 0 is wasted as 0 is not a valid packet id
             outgoing_pub: vec![None; max_inflight as usize + 1],
             outgoing_rel: vec![None; max_inflight as usize + 1],
-            incoming_pub: vec![None; std::u16::MAX as usize + 1],
+            incoming_pub: HashSet::new(),
             collision: None,
             // TODO: Optimize these sizes later
             events: VecDeque::with_capacity(100),
@@ -121,9 +121,7 @@ impl MqttState {
         }
 
         // remove packed ids of incoming qos2 publishes
-        for id in self.incoming_pub.iter_mut() {
-            id.take();
-        }
+        self.incoming_pub.clear();
 
         self.await_pingresp = false;
         self.collision_ping_count = 0;
@@ -204,7 +202,7 @@ impl MqttState {
             QoS::ExactlyOnce => {
                 let pkid = publish.pkid;
                 PubRec::new(pkid).write(&mut self.write)?;
-                self.incoming_pub[pkid as usize] = Some(pkid);
+                self.incoming_pub.insert(pkid);
                 let event = Event::Outgoing(Outgoing::PubRec(pkid));
                 self.events.push_back(event);
                 Ok(())
@@ -256,17 +254,14 @@ impl MqttState {
     }
 
     fn handle_incoming_pubrel(&mut self, pubrel: &PubRel) -> Result<(), StateError> {
-        match mem::replace(&mut self.incoming_pub[pubrel.pkid as usize], None) {
-            Some(_) => {
-                PubComp::new(pubrel.pkid).write(&mut self.write)?;
-                let event = Event::Outgoing(Outgoing::PubComp(pubrel.pkid));
-                self.events.push_back(event);
-                Ok(())
-            }
-            None => {
-                error!("Unsolicited pubrel packet: {:?}", pubrel.pkid);
-                Err(StateError::Unsolicited(pubrel.pkid))
-            }
+        if self.incoming_pub.remove(&pubrel.pkid) {
+            PubComp::new(pubrel.pkid).write(&mut self.write)?;
+            let event = Event::Outgoing(Outgoing::PubComp(pubrel.pkid));
+            self.events.push_back(event);
+            Ok(())
+        } else {
+            error!("Unsolicited pubrel packet: {:?}", pubrel.pkid);
+            Err(StateError::Unsolicited(pubrel.pkid))
         }
     }
 
