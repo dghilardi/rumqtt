@@ -331,7 +331,9 @@ async fn network_connect(options: &MqttOptions) -> Result<Network, ConnectionErr
             Network::new(socket, options.max_incoming_packet_size)
         }
         Transport::Tls(tls_config) => {
-            let socket = tls::tls_connect(&options, &tls_config).await?;
+            let socket = time::timeout(Duration::from_secs(options.conn_timeout), async {
+                tls::tls_connect(&options, &tls_config).await
+            }).await??;
             Network::new(socket, options.max_incoming_packet_size)
         }
         #[cfg(feature = "websocket")]
