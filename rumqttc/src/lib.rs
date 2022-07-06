@@ -16,7 +16,7 @@
 //! let mut mqttoptions = MqttOptions::new("rumqtt-sync", "test.mosquitto.org", 1883);
 //! mqttoptions.set_keep_alive(Duration::from_secs(5));
 //!
-//! let (mut client, mut connection) = Client::new(mqttoptions, 10, ReconnectionStrategy::Instant);
+//! let (mut client, mut connection) = Client::new(mqttoptions, 10);
 //! client.subscribe("hello/rumqtt", QoS::AtMostOnce).unwrap();
 //! thread::spawn(move || for i in 0..10 {
 //!    client.publish("hello/rumqtt", QoS::AtLeastOnce, false, vec![i; i as usize]).unwrap();
@@ -44,7 +44,7 @@
 //! let mut mqttoptions = MqttOptions::new("rumqtt-async", "test.mosquitto.org", 1883);
 //! mqttoptions.set_keep_alive(Duration::from_secs(5));
 //!
-//! let (mut client, mut eventloop) = AsyncClient::new(mqttoptions, 10, ReconnectionStrategy::Instant);
+//! let (mut client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
 //! client.subscribe("hello/rumqtt", QoS::AtMostOnce).await.unwrap();
 //!
 //! task::spawn(async move {
@@ -113,10 +113,12 @@ mod state;
 #[cfg(feature = "use-rustls")]
 mod tls;
 pub mod v5;
+mod reconnection_strategy;
 
 pub use client::{AsyncClient, Client, ClientError, Connection, Iter};
-pub use eventloop::{ConnectionError, Event, EventLoop, ReconnectionStrategy};
+pub use eventloop::{ConnectionError, Event, EventLoop};
 pub use flume::{SendError, Sender, TrySendError};
+pub use reconnection_strategy::{ReconnectionStrategy, TruncatedExponentialBackoffReconnectionStrategy};
 pub use mqttbytes::v4::*;
 pub use mqttbytes::*;
 pub use state::{MqttState, StateError};

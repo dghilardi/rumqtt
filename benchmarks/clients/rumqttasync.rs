@@ -1,4 +1,4 @@
-use rumqttc::{AsyncClient, Event, Incoming, MqttOptions, QoS, ReconnectionStrategy};
+use rumqttc::{AsyncClient, Event, Incoming, MqttOptions, QoS};
 
 use std::error::Error;
 use std::time::{Duration, Instant};
@@ -25,7 +25,7 @@ pub async fn start(id: &str, payload_size: usize, count: usize) -> Result<(), Bo
     mqttoptions.set_keep_alive(Duration::from_secs(20));
     mqttoptions.set_inflight(100);
 
-    let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10, ReconnectionStrategy::Instant);
+    let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
     task::spawn(async move {
         for _i in 0..count {
             let payload = vec![0; payload_size];
