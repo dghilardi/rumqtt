@@ -1,6 +1,6 @@
 use tokio::{task, time};
 
-use rumqttc::{self, AsyncClient, MqttOptions, QoS};
+use rumqttc::{self, AsyncClient, MqttOptions, QoS, ReconnectionStrategy};
 use std::error::Error;
 use std::time::Duration;
 
@@ -12,7 +12,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut mqttoptions = MqttOptions::new("test-1", "localhost", 1883);
     mqttoptions.set_keep_alive(Duration::from_secs(5));
 
-    let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
+    let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10, ReconnectionStrategy::Instant);
     task::spawn(async move {
         requests(client).await;
         time::sleep(Duration::from_secs(3)).await;

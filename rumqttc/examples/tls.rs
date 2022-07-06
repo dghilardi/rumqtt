@@ -1,5 +1,6 @@
 //! Example of how to configure rumqttd to connect to a server using TLS and authentication.
 use std::error::Error;
+use rumqttc::ReconnectionStrategy;
 
 #[cfg(feature = "use-rustls")]
 #[tokio::main]
@@ -27,7 +28,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     mqttoptions.set_transport(Transport::tls_with_config(client_config.into()));
 
-    let (_client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
+    let (_client, mut eventloop) = AsyncClient::new(mqttoptions, 10, ReconnectionStrategy::Instant);
 
     loop {
         match eventloop.poll().await {

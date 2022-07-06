@@ -64,7 +64,7 @@ async fn connection_should_timeout_on_time() {
 
     time::sleep(Duration::from_secs(1)).await;
     let options = MqttOptions::new("dummy", "127.0.0.1", 1880);
-    let mut eventloop = EventLoop::new(options, 5);
+    let mut eventloop = EventLoop::new(options, 5, ReconnectionStrategy::Instant);
 
     let start = Instant::now();
     let o = eventloop.poll().await;
@@ -87,7 +87,7 @@ async fn idle_connection_triggers_pings_on_time() {
 
     // Create client eventloop and poll
     task::spawn(async move {
-        let mut eventloop = EventLoop::new(options, 5);
+        let mut eventloop = EventLoop::new(options, 5, ReconnectionStrategy::Instant);
         run(&mut eventloop, false).await.unwrap();
     });
 
@@ -123,7 +123,7 @@ async fn some_outgoing_and_no_incoming_should_trigger_pings_on_time() {
 
     // start sending qos0 publishes. this makes sure that there is
     // outgoing activity but no incoming activity
-    let mut eventloop = EventLoop::new(options, 5);
+    let mut eventloop = EventLoop::new(options, 5, ReconnectionStrategy::Instant);
     let requests_tx = eventloop.handle();
 
     // Start sending publishes
@@ -167,7 +167,7 @@ async fn some_incoming_and_no_outgoing_should_trigger_pings_on_time() {
     options.set_keep_alive(Duration::from_secs(keep_alive));
 
     task::spawn(async move {
-        let mut eventloop = EventLoop::new(options, 5);
+        let mut eventloop = EventLoop::new(options, 5, ReconnectionStrategy::Instant);
         run(&mut eventloop, false).await.unwrap();
     });
 
@@ -211,7 +211,7 @@ async fn detects_halfopen_connections_in_the_second_ping_request() {
 
     time::sleep(Duration::from_secs(1)).await;
     let start = Instant::now();
-    let mut eventloop = EventLoop::new(options, 5);
+    let mut eventloop = EventLoop::new(options, 5, ReconnectionStrategy::Instant);
     loop {
         if let Err(e) = eventloop.poll().await {
             match e {
@@ -236,7 +236,7 @@ async fn requests_are_blocked_after_max_inflight_queue_size() {
 
     // start sending qos0 publishes. this makes sure that there is
     // outgoing activity but no incoming activity
-    let mut eventloop = EventLoop::new(options, 5);
+    let mut eventloop = EventLoop::new(options, 5, ReconnectionStrategy::Instant);
     let requests_tx = eventloop.handle();
     task::spawn(async move {
         start_requests(10, QoS::AtLeastOnce, 1, requests_tx).await;
@@ -262,7 +262,7 @@ async fn requests_are_recovered_after_inflight_queue_size_falls_below_max() {
     let mut options = MqttOptions::new("dummy", "127.0.0.1", 1888);
     options.set_inflight(3);
 
-    let mut eventloop = EventLoop::new(options, 5);
+    let mut eventloop = EventLoop::new(options, 5, ReconnectionStrategy::Instant);
     let requests_tx = eventloop.handle();
 
     task::spawn(async move {
@@ -301,7 +301,7 @@ async fn packet_id_collisions_are_detected_and_flow_control_is_applied() {
     let mut options = MqttOptions::new("dummy", "127.0.0.1", 1891);
     options.set_inflight(10);
 
-    let mut eventloop = EventLoop::new(options, 5);
+    let mut eventloop = EventLoop::new(options, 5, ReconnectionStrategy::Instant);
     let requests_tx = eventloop.handle();
 
     task::spawn(async move {
@@ -424,7 +424,7 @@ async fn next_poll_after_connect_failure_reconnects() {
     });
 
     time::sleep(Duration::from_secs(1)).await;
-    let mut eventloop = EventLoop::new(options, 5);
+    let mut eventloop = EventLoop::new(options, 5, ReconnectionStrategy::Instant);
 
     match eventloop.poll().await {
         Err(ConnectionError::ConnectionRefused(ConnectReturnCode::BadUserNamePassword)) => (),
@@ -446,7 +446,7 @@ async fn reconnection_resumes_from_the_previous_state() {
     options.set_keep_alive(Duration::from_secs(5));
 
     // start sending qos0 publishes. Makes sure that there is out activity but no in activity
-    let mut eventloop = EventLoop::new(options, 5);
+    let mut eventloop = EventLoop::new(options, 5, ReconnectionStrategy::Instant);
     let requests_tx = eventloop.handle();
     task::spawn(async move {
         start_requests(10, QoS::AtLeastOnce, 1, requests_tx).await;
@@ -488,7 +488,7 @@ async fn reconnection_resends_unacked_packets_from_the_previous_connection_first
 
     // start sending qos0 publishes. this makes sure that there is
     // outgoing activity but no incoming activity
-    let mut eventloop = EventLoop::new(options, 5);
+    let mut eventloop = EventLoop::new(options, 5, ReconnectionStrategy::Instant);
     let requests_tx = eventloop.handle();
     task::spawn(async move {
         start_requests(10, QoS::AtLeastOnce, 1, requests_tx).await;

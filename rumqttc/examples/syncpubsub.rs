@@ -1,4 +1,4 @@
-use rumqttc::{self, Client, LastWill, MqttOptions, QoS};
+use rumqttc::{self, Client, LastWill, MqttOptions, QoS, ReconnectionStrategy};
 use std::thread;
 use std::time::Duration;
 
@@ -11,7 +11,7 @@ fn main() {
         .set_keep_alive(Duration::from_secs(5))
         .set_last_will(will);
 
-    let (client, mut connection) = Client::new(mqttoptions, 10);
+    let (client, mut connection) = Client::new(mqttoptions, 10, ReconnectionStrategy::Instant);
     thread::spawn(move || publish(client));
 
     for (i, notification) in connection.iter().enumerate() {

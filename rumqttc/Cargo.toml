@@ -23,6 +23,7 @@ async-tungstenite = { version = "0.16", default-features = false, features = ["t
 bytes = "1"
 flume = "0.10"
 http = "0.2"
+rand = "0.8"
 log = "0.4"
 pollster = "0.2"
 rustls-pemfile = { version = "0.3", optional = true }

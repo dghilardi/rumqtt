@@ -1,6 +1,6 @@
 use tokio::{task, time};
 
-use rumqttc::{self, AsyncClient, Event, EventLoop, Incoming, MqttOptions, QoS};
+use rumqttc::{self, AsyncClient, Event, EventLoop, Incoming, MqttOptions, QoS, ReconnectionStrategy};
 use std::error::Error;
 use std::time::Duration;
 
@@ -11,7 +11,7 @@ fn create_conn() -> (AsyncClient, EventLoop) {
         .set_manual_acks(true)
         .set_clean_session(false);
 
-    AsyncClient::new(mqttoptions, 10)
+    AsyncClient::new(mqttoptions, 10, ReconnectionStrategy::Instant)
 }
 
 #[tokio::main(worker_threads = 1)]
